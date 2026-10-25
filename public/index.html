@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="A free community store for single-file HTML apps that work offline.">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>HTML Offline Store</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="config.js"></script>
+  <script defer src="i18n.js"></script>
+  <script defer src="api.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body data-theme="light">
+  <div class="shell">
+    <!-- Encabezado: navegación y preferencias compartidas de la tienda. -->
+    <header class="site-header">
+      <button class="brand-button" id="homeButton" type="button" aria-label="HTML Offline Store" data-i18n-aria="storeHome">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="m10 9-3 3 3 3m4-6 3 3-3 3"/></svg></span>
+        <span class="brand-copy"><strong>HTML<span class="brand-accent">/</span>Store</strong><small data-i18n="brandSub">Offline-first applications</small></span>
+      </button>
+      <nav class="header-actions" aria-label="Main navigation" data-i18n-aria="mainNavigation">
+        <button class="nav-link active" id="catalogNav" type="button" data-i18n="explore">Explore</button>
+        <button class="nav-link hidden" id="myAppsNav" type="button" data-i18n="myApps">My apps</button>
+        <button class="nav-link hidden" id="adminNav" type="button"><span data-i18n="review">Review</span><span class="count-pill hidden" id="pendingBadge">0</span></button>
+        <label class="sr-only" for="languageSelect" data-i18n="language">Language</label>
+        <select id="languageSelect" class="soft-select compact" aria-label="Language"><option value="en">English</option><option value="es">Español</option><option value="it">Italiano</option><option value="pt-BR">Português (Brasil)</option></select>
+        <button class="icon-button" id="themeButton" type="button" aria-label="Switch theme" title="Switch theme"><span id="themeIcon" aria-hidden="true">☾</span></button>
+        <button class="icon-button" id="aboutButton" type="button" aria-label="About" title="About"><span aria-hidden="true">ⓘ</span></button>
+        <button class="button button-primary button-small" id="loginButton" type="button" data-i18n="signIn">Sign in</button>
+        <div class="user-area hidden" id="userArea"><span class="user-avatar" id="userInitial">U</span><span class="user-name" id="userName">User</span><button class="button button-small" id="logoutButton" type="button" data-i18n="signOut">Sign out</button></div>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Mensaje inicial: no se simulan registros ni operaciones remotas. -->
+      <section class="setup-notice hidden" id="setupNotice" role="status"><span class="notice-symbol">⚙</span><div><strong data-i18n="setupTitle">Setup required</strong><p data-i18n="setupBody">Add your Supabase URL and publishable key to config.js, then run schema.sql. The store is in preview mode until configured.</p></div></section>
+
+      <!-- Hero: propuesta de valor y acción principal para autores. -->
+      <section class="hero">
+        <div class="hero-copy"><div class="eyebrow"><span class="pulse-dot"></span><span data-i18n="heroEyebrow">A different kind of app store</span></div><h1 data-i18n-html="heroTitle">Small files.<br><em>Big possibilities.</em></h1><p data-i18n="heroDescription">Discover free, portable apps made with HTML, CSS and JavaScript. Download one file. Use it offline. Keep it forever.</p><div class="hero-actions"><button class="button button-primary" id="exploreButton" type="button"><span aria-hidden="true">⌕</span> <span data-i18n="exploreApps">Explore apps</span></button><button class="button" id="publishButton" type="button"><span aria-hidden="true">＋</span> <span data-i18n="publishApp">Publish an app</span></button></div><div class="hero-tags"><span>◆ <span data-i18n="freeForever">100% free</span></span><span>◉ <span data-i18n="noInstall">No installation</span></span><span>↯ <span data-i18n="worksOffline">Works offline</span></span></div></div>
+        <div class="hero-visual" aria-hidden="true"><div class="visual-window"><div class="visual-top"><span></span><span></span><span></span><i>my-app.html</i></div><div class="visual-content"><div class="code-symbol">&lt;/&gt;</div><div class="visual-bars"><b></b><b></b><b></b></div><div class="visual-mini"><span>HTML</span><span>CSS</span><span>JS</span></div></div></div><div class="floating-label float-top">✦ <span>Single file</span></div><div class="floating-label float-bottom">↓ <span>Offline ready</span></div></div>
+      </section>
+
+      <!-- Indicadores: derivados exclusivamente de los datos devueltos por Supabase. -->
+      <section class="stats-grid" aria-label="Store statistics"><div class="stat"><span class="stat-icon">▦</span><div><strong id="appCount">—</strong><small data-i18n="statApps">Published apps</small></div></div><div class="stat"><span class="stat-icon">◇</span><div><strong id="devCount">—</strong><small data-i18n="statDevelopers">Contributors</small></div></div><div class="stat"><span class="stat-icon">↓</span><div><strong data-i18n="alwaysFree">Free</strong><small data-i18n="statDownloads">Every download</small></div></div></section>
+
+      <!-- Catálogo: búsqueda, filtro y ordenación sin dependencias externas. -->
+      <section class="content-section" id="catalogSection"><div class="section-header"><div><span class="section-kicker" data-i18n="discoverLabel">THE COLLECTION</span><h2 data-i18n="exploreLibrary">Explore the library</h2><p data-i18n="libraryDescription">Independent tools, built to travel with you.</p></div><span class="result-indicator" id="resultCount"></span></div>
+        <div class="filters"><div class="search-box"><span aria-hidden="true" class="search-symbol">⌕</span><label class="sr-only" for="searchInput" data-i18n="searchLabel">Search apps</label><input id="searchInput" type="search" data-i18n-placeholder="searchPlaceholder" placeholder="Search by name, description, or author..." maxlength="150"></div><label class="sr-only" for="categorySelect" data-i18n="category">Category</label><select class="soft-select" id="categorySelect"><option value="all" data-i18n="allCategories">All categories</option></select><label class="sr-only" for="sortSelect" data-i18n="sort">Sort</label><select class="soft-select" id="sortSelect"><option value="newest" data-i18n="newest">Newest first</option><option value="name" data-i18n="alphabetical">Name A–Z</option></select></div>
+        <div class="category-chips" id="categoryChips" aria-label="Categories" data-i18n-aria="categoriesLabel"></div><div class="app-grid" id="appGrid"></div><div class="empty-state hidden" id="catalogEmpty"><div class="empty-art">◇</div><h3 id="emptyTitle" data-i18n="noApps">No apps found</h3><p id="emptyDescription" data-i18n="noAppsDetail">Try another search or category.</p><button class="button" type="button" id="resetFiltersButton" data-i18n="clearFilters">Clear filters</button></div>
+      </section>
+
+      <!-- Panel personal: solo se presenta tras autenticarse. -->
+      <section class="content-section hidden" id="myAppsSection"><div class="section-header"><div><span class="section-kicker" data-i18n="creatorSpace">CREATOR SPACE</span><h2 data-i18n="myApplications">My applications</h2><p data-i18n="myApplicationsDetail">Track submissions and their review status.</p></div><button class="button button-primary" type="button" id="myAppsPublishButton">＋ <span data-i18n="submitNew">Submit a new app</span></button></div><div class="developer-intro hidden" id="developerIntro"><div><h3 data-i18n="becomeDeveloper">Become a contributor</h3><p data-i18n="developerIntro">Enable your free contributor account to submit HTML apps for review.</p></div><button class="button button-primary" type="button" id="enableDeveloperButton" data-i18n="enableDeveloper">Enable contributor account</button></div><div id="myAppsList" class="dashboard-list"></div></section>
+
+      <!-- Panel de moderación: las operaciones reales exigen el rol admin en SQL. -->
+      <section class="content-section hidden" id="adminSection"><div class="section-header"><div><span class="section-kicker" data-i18n="moderation">MODERATION</span><h2 data-i18n="reviewQueue">Review queue</h2><p data-i18n="reviewSubtitle">Verify files before releasing them to the public.</p></div><button class="button" id="refreshAdminButton" type="button">↻ <span data-i18n="refresh">Refresh</span></button></div><div class="moderation-warning"><span>!</span><p data-i18n="manualReview">Manual security review is required. Do not approve untrusted HTML files without inspecting and testing them offline.</p></div><div class="dashboard-list" id="adminList"></div></section>
+
+      <!-- Pie de página y recordatorio de aislamiento de las apps. -->
+      <footer class="site-footer"><div><strong>HTML<span class="brand-accent">/</span>Store</strong><p data-i18n="footerLine">One file. Your device. Your freedom.</p></div><div class="footer-right"><span data-i18n="footerSafety">Third-party applications are downloaded, not run on this website.</span><span id="footerVersion"></span></div></footer>
+    </main>
+  </div>
+
+  <!-- Todas las ventanas emplean dialog nativo para enfoque, Esc y accesibilidad. -->
+  <dialog id="aboutDialog" class="soft-dialog small-dialog" aria-labelledby="aboutHeading"><div class="dialog-heading"><div><span class="section-kicker" data-i18n="information">INFORMATION</span><h2 id="aboutHeading" data-i18n="about">About</h2></div><button class="icon-button dialog-close" type="button" data-close="aboutDialog" aria-label="Close">×</button></div><div class="about-logo">&lt;/&gt;</div><dl class="about-data"><div><dt data-i18n="application">Application</dt><dd id="aboutApplication">HTML Offline Store</dd></div><div><dt data-i18n="author">Author</dt><dd>Raymundo Ortiz</dd></div><div><dt data-i18n="version">Version</dt><dd id="aboutVersion"></dd></div><div><dt>GitHub</dt><dd><a id="githubLink" href="https://github.com/FireRayo/" target="_blank" rel="noopener noreferrer">github.com/FireRayo ↗</a></dd></div></dl><button class="button button-primary full-width" type="button" data-close="aboutDialog" data-i18n="close">Close</button></dialog>
+
+  <dialog id="detailsDialog" class="soft-dialog details-dialog" aria-labelledby="detailsHeading"><div class="dialog-heading"><div><span class="section-kicker" data-i18n="appOverview">APP OVERVIEW</span><h2 id="detailsHeading"></h2></div><button class="icon-button dialog-close" type="button" data-close="detailsDialog" aria-label="Close">×</button></div><div id="detailsContent"></div></dialog>
+
+  <dialog id="uploadDialog" class="soft-dialog upload-dialog" aria-labelledby="uploadHeading"><div class="dialog-heading"><div><span class="section-kicker" data-i18n="shareWithCommunity">SHARE WITH THE COMMUNITY</span><h2 id="uploadHeading" data-i18n="submitApplication">Submit an application</h2></div><button class="icon-button dialog-close" type="button" data-close="uploadDialog" aria-label="Close">×</button></div><p class="dialog-intro" data-i18n="submitIntro">Your application stays private until an administrator approves it.</p><form id="uploadForm" novalidate><div class="form-row"><div class="form-field"><label for="appTitle" data-i18n="appName">Application name</label><input id="appTitle" name="title" required maxlength="80" placeholder="e.g. Image Compressor" data-i18n-placeholder="appNamePlaceholder"></div><div class="form-field"><label for="appVersion" data-i18n="appVersion">Version</label><input id="appVersion" name="version" required maxlength="30" value="1.0.0" placeholder="1.0.0" pattern="[0-9A-Za-z][0-9A-Za-z._+-]{0,29}"></div></div><div class="form-field"><label for="appCategory" data-i18n="category">Category</label><select id="appCategory" required><option value="" data-i18n="chooseCategory">Choose a category</option></select></div><div class="form-field"><label for="appSummary" data-i18n="shortSummary">Short summary</label><input id="appSummary" required maxlength="180" placeholder="A concise description of what your app does" data-i18n-placeholder="summaryPlaceholder"><small class="field-hint" data-i18n="summaryHint">Up to 180 characters.</small></div><div class="form-field"><label for="appDescription" data-i18n="fullDescription">Full description</label><textarea id="appDescription" required maxlength="4000" rows="4" data-i18n-placeholder="descriptionPlaceholder" placeholder="Features, instructions, limitations..."></textarea></div><div class="form-field"><label for="htmlFile" data-i18n="htmlFile">Single HTML file</label><label class="file-drop" id="htmlDrop"><input id="htmlFile" type="file" accept=".html,text/html" required><span class="upload-glyph">&lt;/&gt;</span><span class="file-drop-title" data-i18n="htmlFilePrompt">Choose a .html file</span><small id="htmlFileName" data-i18n="htmlFileLimit">Maximum 10 MB · One self-contained file</small></label></div><div class="form-field"><label for="imageFiles" data-i18n="screenshots">Screenshots (optional)</label><label class="file-drop file-drop-small"><input id="imageFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple><span class="upload-glyph">▧</span><span class="file-drop-title" data-i18n="screenshotsPrompt">Choose up to 3 images</span><small id="imageFileNames" data-i18n="screenshotsLimit">PNG, JPEG or WebP · 2 MB each</small></label></div><label class="checkbox-row"><input type="checkbox" id="confirmOffline" required><span data-i18n="confirmOffline">I confirm this app works offline, includes all its dependencies, and I have permission to distribute it.</span></label><div class="form-actions"><button class="button" type="button" data-close="uploadDialog" data-i18n="cancel">Cancel</button><button class="button button-primary" type="submit" id="submitButton" data-i18n="submitForReview">Submit for review</button></div></form></dialog>
+
+  <dialog id="confirmDialog" class="soft-dialog small-dialog" aria-labelledby="confirmHeading"><div class="dialog-heading"><h2 id="confirmHeading"></h2><button class="icon-button dialog-close" data-close="confirmDialog" type="button" aria-label="Close">×</button></div><p id="confirmMessage" class="dialog-intro"></p><div class="form-actions"><button class="button" id="confirmCancel" type="button" data-i18n="cancel">Cancel</button><button class="button button-primary" id="confirmAccept" type="button" data-i18n="confirm">Confirm</button></div></dialog>
+  <div class="toast-stack" id="toastStack" role="status" aria-live="polite" aria-atomic="false"></div>
+</body>
+</html>
