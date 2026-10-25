@@ -166,10 +166,56 @@
       method: 'POST', body: file, extraHeaders: { 'Content-Type': mime, 'cache-control': '3600', 'x-upsert': 'false' }
     });
   }
-  function copyToPublished(path) {
-    return request('/storage/v1/object/copy', {
-      method: 'POST', body: { bucketId: config.BUCKET_PENDING, sourceKey: path, destinationBucket: config.BUCKET_PUBLISHED, destinationKey: path }
-    });
+  /* Averigua si un archivo ya existe en el bucket público.
+   * Se utiliza únicamente al reintentar una publicación parcialmente completada.
+   * HEAD evita descargar el archivo publicado y no necesita credenciales secretas.
+   */
+  async function publishedFileInfo(path) {
+    try {
+      return await request(`/storage/v1/object/public/${config.BUCKET_PUBLISHED}/${encodePath(path)}`, {
+        method: 'HEAD', auth: false, raw: true
+      });
+    } catch (error) {
+      if (/\(404\)/.test(error.message)) return null;
+      throw error;
+    }
+  }
+
+  /* Publicación V0.1.1: lectura privada + subida explícita al bucket público.
+   * Se evita /storage/v1/object/copy para que el bucket destino no sea ambiguo.
+   * El servidor sigue aplicando las políticas RLS al descargar y al subir.
+   * approve_app comprueba después los objetos en PostgreSQL antes de publicar.
+   */
+  async function copyToPublished(path) {
+    const safePath = encodePath(path);
+    const mime = path.endsWith('/application.html') ? 'application/octet-stream'
+      : path.endsWith('.png') ? 'image/png'
+      : path.endsWith('.jpg') ? 'image/jpeg'
+      : path.endsWith('.webp') ? 'image/webp' : null;
+    if (!mime) throw new Error('Tipo de archivo no permitido para publicación');
+
+    const sourceResponse = await request(
+      `/storage/v1/object/authenticated/${config.BUCKET_PENDING}/${safePath}`, {raw:true}
+    );
+    const file = await sourceResponse.blob();
+    const maxSize = mime === 'application/octet-stream' ? config.MAX_HTML_BYTES : config.MAX_IMAGE_BYTES;
+    if (!file.size || file.size > maxSize) throw new Error('Archivo privado vacío o fuera del límite');
+
+    try {
+      await request(`/storage/v1/object/${config.BUCKET_PUBLISHED}/${safePath}`, {
+        method:'POST', body:file,
+        extraHeaders:{'Content-Type':mime,'cache-control':'3600','x-upsert':'false'}
+      });
+    } catch (error) {
+      /* Un 409 solo es recuperable si la copia existe y conserva el tamaño.
+       * Nunca se acepta un conflicto a ciegas: eso provocó errores en V0.1.0.
+       */
+      if (!/\(409\)/.test(error.message)) throw error;
+      const info = await publishedFileInfo(path);
+      if (!info || Number(info.headers.get('content-length')) !== file.size) throw error;
+    }
+    /* Validación independiente: el destino público debe existir realmente. */
+    if (!(await publishedFileInfo(path))) throw new Error('Archivo no encontrado en published-apps tras subirlo');
   }
   function deletePendingFiles(paths) {
     if (!paths.length) return Promise.resolve();

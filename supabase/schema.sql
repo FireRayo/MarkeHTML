@@ -1,5 +1,5 @@
 -- ============================================================================
--- HTML OFFLINE STORE — ESQUEMA INICIAL / V0.1.0
+-- HTML OFFLINE STORE — ESQUEMA INICIAL / V0.1.1
 -- Ejecutar desde Supabase > SQL Editor ANTES de abrir el registro al público.
 -- Cada política aplica seguridad a nivel DB; los botones del frontend NO
 -- sustituyen las verificaciones de autorización en el servidor.
@@ -194,6 +194,12 @@ with check (
     where a.id::text=split_part(name,'/',2) and a.status='pending'
       and a.author_id::text=split_part(name,'/',1))
 );
+
+-- V0.1.1: lectura de objetos publicados para moderadores autenticados.
+-- Útil para las verificaciones de reintento de publicación.
+drop policy if exists published_admin_read on storage.objects;
+create policy published_admin_read on storage.objects for select to authenticated
+using (bucket_id='published-apps' and public.is_admin());
 
 -- 09. RPC: los usuarios sí pueden convertirse en desarrolladores, NUNCA
 -- en administradores. No se permite actualizar profiles desde el cliente.

@@ -421,12 +421,11 @@
     try{
       /* Copiar primero las imágenes y al final el HTML; la RPC valida todas. */
       const files = [...images(app).map(item=>item.storage_path),latestVersion(app)?.storage_path].filter(Boolean);
-      for(const path of files){
-        try{await API.copyToPublished(path);}
-        catch(error){
-          /* Reintentos tras fallo parcial pueden hallar objetos ya copiados. */
-          if(!/\(409\)|already exists|duplicate|resource already exists/i.test(error.message)) throw error;
-        }
+      for(const path of files) {
+        /* Solo se continúa si la API confirmó el archivo en published-apps.
+         * La capa HTTP gestiona los reintentos verificando la copia real.
+         */
+        await API.copyToPublished(path);
       }
       await API.rpc('approve_app',{p_app_id:app.id});
       notify(t('appApproved'),'success');

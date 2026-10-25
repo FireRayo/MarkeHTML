@@ -5,7 +5,7 @@
  */
 window.STORE_CONFIG = Object.freeze({
   APP_NAME: 'HTML Offline Store',
-  VERSION: '0.1.0',
+  VERSION: '0.1.1',
   SUPABASE_URL: 'https://babpcidhnlxyqfcnrsqi.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_MqJu5RZPeVg5IXHqTkDecQ_zKY-nPEI',
   MAX_HTML_BYTES: 10 * 1024 * 1024,
