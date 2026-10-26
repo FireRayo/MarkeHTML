@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 const root=path.resolve(import.meta.dirname,'..');
 const memory=new Map();
 const calls=[];
+const publishedObjects=new Map();
+let forceInvalidConflict=false;
 const context={window:{},console,URL,URLSearchParams,Date,Promise,Blob,ArrayBuffer,setTimeout,clearTimeout,
   localStorage:{getItem:key=>memory.get(key)||null,setItem:(key,v)=>memory.set(key,v),removeItem:key=>memory.delete(key)},
   location:{protocol:'https:',href:'https://store.pages.dev/',pathname:'/',search:'',hash:'',assign(value){this.redirect=value;}},
@@ -19,7 +21,22 @@ const context={window:{},console,URL,URLSearchParams,Date,Promise,Blob,ArrayBuff
     let result=[];
     if(url.endsWith('/auth/v1/user')) result={id:'00000000-0000-4000-8000-000000000001'};
     if(url.includes('grant_type=refresh_token')) result={access_token:'refreshed',refresh_token:'new_refresh',expires_in:3600};
-    if(url.endsWith('/storage/v1/object/copy')) result={Key:'published-apps/path'};
+    if(url.includes('/storage/v1/object/authenticated/pending-apps/') && options.method === 'GET') {
+      return new Response(new Blob(['<html></html>'],{type:'application/octet-stream'}), {status:200});
+    }
+    if(url.includes('/storage/v1/object/published-apps/') && options.method === 'POST') {
+      const key=url.split('/published-apps/')[1];
+      if (publishedObjects.has(key) || forceInvalidConflict) {
+        return new Response(JSON.stringify({message:'The resource already exists'}),{status:409});
+      }
+      publishedObjects.set(key,options.body.size);
+      result={Key:key};
+    }
+    if(url.includes('/storage/v1/object/public/published-apps/') && options.method === 'HEAD') {
+      const key=url.split('/published-apps/')[1];
+      if (!publishedObjects.has(key)) return new Response(null,{status:404});
+      return new Response(null,{status:200,headers:{'content-length':String(publishedObjects.get(key))}});
+    }
     return new Response(JSON.stringify(result),{status:200,headers:{'Content-Type':'application/json'}});
   },Response,
 };
@@ -44,9 +61,16 @@ const rpc=calls.at(-1);
 assert.ok(rpc.url.endsWith('/rest/v1/rpc/approve_app'));
 assert.equal(JSON.parse(rpc.body).p_app_id,'test-uuid');
 await api.copyToPublished('user/app/application.html');
-const copy=JSON.parse(calls.at(-1).body);
-assert.equal(copy.destinationBucket,'published-apps');
-assert.equal(copy.sourceKey,'user/app/application.html');
+assert.equal(calls.at(-1).method,'HEAD','Confirmar existencia pública antes de RPC');
+assert.ok(publishedObjects.has('user/app/application.html'));
+assert.ok(calls.some(item=>item.url.includes('/storage/v1/object/published-apps/') && item.method==='POST'));
+assert.equal(calls.some(item=>item.url.endsWith('/object/copy')),false,'No usar copia ambigua entre buckets');
+await api.copyToPublished('user/app/application.html');
+assert.equal(publishedObjects.size,1,'Reintento idempotente si ya existe la copia');
+forceInvalidConflict=true;
+await assert.rejects(api.copyToPublished('other/app/application.html'), /\(409\)/,
+  'Un conflicto sin copia verificada no debe tolerarse');
+forceInvalidConflict=false;
 await api.uploadPending('user/app/application.html',new Blob(['<html></html>']),'application/octet-stream');
 assert.equal(calls.at(-1).headers['Content-Type'],'application/octet-stream');
 assert.ok(api.publishedUrl('user/app/application.html','demo.html').includes('download=demo.html'));
@@ -61,4 +85,4 @@ assert.ok(context.location.redirect.includes('provider=github'));
 assert.ok(context.location.redirect.includes('redirect_to='));
 await api.logout();
 assert.equal(api.hasSession(),false);
-console.log(`OK: ${calls.length} peticiones simuladas, OAuth, refresh, key pública, upload, copy, RPC y logout.`);
+console.log(`OK: ${calls.length} peticiones simuladas, OAuth, refresh, key pública, upload, transferencia explícita, RPC y logout.`);

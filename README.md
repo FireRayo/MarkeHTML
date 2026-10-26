@@ -1,4 +1,4 @@
-# HTML Offline Store · V0.1.0
+# HTML Offline Store · V0.1.1
 
 Primera versión de una **tienda comunitaria de aplicaciones independientes en un único archivo `.html`**, sin tarifas para publicar o descargar. La **tienda es un sitio web**; las aplicaciones que distribuye se descargan como archivos autocontenidos para uso offline.
 
@@ -143,3 +143,28 @@ Además se recomienda revisar manualmente estos pasos **contra el proyecto Supab
 - [Descargas Storage y `?download`](https://supabase.com/docs/guides/storage/serving/downloads)
 
 **Autor:** Raymundo Ortiz · **GitHub:** https://github.com/FireRayo/ · **Versión centralizada:** `STORE_CONFIG.VERSION`.
+
+
+## 8. Actualización V0.1.1 desde V0.1.0
+
+Corrige el error de aprobación `Published HTML copy missing` en copias entre
+buckets: ahora el administrador descarga el objeto privado y lo sube
+explícitamente al bucket `published-apps`. No se confía en errores `409`
+sin verificar el archivo público. También se corrige el atributo HTML
+`pattern` del campo Versión en navegadores que usan RegExp `v`.
+
+**Proyecto Supabase existente:** solo ejecutar
+`supabase/migrations/20261025_v0.1.1_published_admin_read.sql` si aún no
+se aplicó la política `published_admin_read`; la migración es repetible.
+No ejecutar nuevamente el esquema completo en una base de datos existente.
+
+**Actualización mínima en GitHub:** sustituir `public/api.js`, `public/app.js`,
+`public/index.html` y, en el `public/config.js` YA CONFIGURADO, cambiar
+únicamente `VERSION: '0.1.0'` por `VERSION: '0.1.1'`.
+NO reemplazar `config.js` por la plantilla vacía del ZIP: conservar la URL
+Supabase y la clave publicable existentes. Cloudflare Workers desplegará
+el commit automáticamente.
+
+**Nota de integración:** el código se comprobó con peticiones HTTP simuladas.
+Para completar la validación real, volver a aprobar la aplicación pendiente
+y verificar con SQL el objeto público y su estado `published`.

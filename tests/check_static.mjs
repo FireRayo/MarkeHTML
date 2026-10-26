@@ -28,7 +28,7 @@ for(const match of js.matchAll(/\bt\('([A-Za-z][A-Za-z0-9]*)'/g))
   assert.ok(dictionaries.en[match[1]],`Falta clave en JS: ${match[1]}`);
 for(const url of html.matchAll(/(?:src|href)="(https?:\/\/[^\"]+)"/g))
   assert.ok(url[1] === 'https://github.com/FireRayo/',`Recurso externo en HTML: ${url[1]}`);
-assert.ok(/VERSION:\s*'0\.1\.0'/.test(file('public/config.js')),'Versión central ausente');
+assert.ok(/VERSION:\s*'\d+\.\d+\.\d+'/.test(file('public/config.js')),'Versión central ausente');
 assert.ok(!/fetch\(["']https?:\/\//.test(js),'App JavaScript depende de API remota desconocida');
 for(const token of ['--bg:#DFE4EA','--bg:#20252B','--accent:#557BD9','--accent:#5C7FD6']) assert.ok(css.includes(token),`Paleta incompleta: ${token}`);
 for(const name of ['profiles','categories','apps','app_versions','app_assets','pending-apps','published-apps','submit_app','approve_app','reject_app','become_developer']) assert.ok(sql.includes(name),`SQL falta ${name}`);
